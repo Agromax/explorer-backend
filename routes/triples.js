@@ -2,7 +2,10 @@ var express = require('express');
 var crypto = require('crypto');
 var path = require('path');
 var fs = require('fs');
+
 var Promise = require('promise');
+var mongoose = require('mongoose');
+var sanitizer = require('sanitizer');
 
 var models = require('../lib/model');
 var hash = require('../lib/hash');
@@ -10,6 +13,9 @@ var hash = require('../lib/hash');
 var router = express.Router();
 
 var Triple = models.Triple;
+var User = models.User;
+var MetaStore = models.MetaStore;
+
 
 /**
  * Searches the triple database
@@ -41,6 +47,59 @@ router.get('/search', function (req, res, next) {
                 code: 0,
                 msg: u
             })
+        }
+    });
+});
+
+
+router.post('/text', function (req, res, next) {
+    var content = req.body.content;
+    var userId = req.body.user;
+    var token = req.body.sessionToken;
+    var tripleId = req.body.triple;
+
+    if (!content || !userId || !token || !tripleId) {
+        return res.json({
+            code: -1,
+            msg: 'Invalid request. Some parameters not specified'
+        });
+    }
+
+    User.findOne({
+        _id: userId
+    }).then(function (u) {
+        if (u) {
+            if (u.sessionToken === token) {
+                var ms = new MetaStore({
+                    tripleId: mongoose.Types.ObjectId(tripleId),
+                    userId: mongoose.Types.ObjectId(userId),
+                    contentType: "text",
+                    content: sanitizer.sanitize(content),
+                    date: Date.now()
+                });
+                ms.save(function (err, ms1) {
+                    if (err) {
+                        return res.json({
+                            code: -1,
+                            msg: err
+                        });
+                    }
+                    return res.json({
+                        code: 0,
+                        msg: ms1
+                    });
+                });
+            } else {
+                res.json({
+                    code: -1,
+                    msg: "Not authorized"
+                });
+            }
+        } else {
+            res.json({
+                code: -1,
+                msg: "Invalid User"
+            });
         }
     });
 });
