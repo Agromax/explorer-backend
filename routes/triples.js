@@ -52,6 +52,39 @@ router.get('/search', function (req, res, next) {
 });
 
 
+/**
+ * Returns a triple s a json object
+ *
+ * Parameters: as: queryString, name: id, paramType: string, desc: id of the triple
+ * Returns: triple description, type: json
+ */
+router.get('/', function (req, res, next) {
+    var id = req.query.id;
+    if (!id) {
+        return res.json({
+            code: -1,
+            msg: "Invalid request. Triple id not supplied"
+        });
+    }
+
+    Triple.findOne({
+        _id: id
+    }, function (err, t) {
+        if (err) {
+            console.log(err);
+            return res.json({
+                code: -1,
+                msg: err
+            });
+        }
+        res.json({
+            code: 0,
+            msg: t
+        });
+    });
+});
+
+
 router.post('/text', function (req, res, next) {
     var content = req.body.content;
     var userId = req.body.user;
