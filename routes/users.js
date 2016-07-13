@@ -48,7 +48,6 @@ router.get('/', function (req, res, next) {
                 msg: err
             });
         }
-        delete user["password"];
         res.json({
             code: 0,
             msg: user

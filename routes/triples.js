@@ -110,7 +110,7 @@ router.get('/text', function (req, res, next) {
         res.json({
             code: 0,
             msg: triples
-        });
+        }); 
     });
 });
 
