@@ -32,7 +32,28 @@ var upload = multer({storage: storage, fileSize: 2 * 1024 * 1024}).array('payloa
 
 /* GET users listing. */
 router.get('/', function (req, res, next) {
-    res.render('index');
+    var id = req.query.id;
+    if (!id) {
+        return res.json({
+            code: -1,
+            msg: "Invalid request, parameter 'user-id' not supplied"
+        });
+    }
+    var userQuery = User.findOne({_id: id});
+    userQuery.select('name email');
+    userQuery.exec(function (err, user) {
+        if (err) {
+            return res.json({
+                code: -1,
+                msg: err
+            });
+        }
+        delete user["password"];
+        res.json({
+            code: 0,
+            msg: user
+        });
+    });
 });
 
 /* POST create a new user */

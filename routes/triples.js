@@ -85,6 +85,36 @@ router.get('/', function (req, res, next) {
 });
 
 
+/**
+ * Parameters: id, type: string, desc: id of the triple
+ */
+router.get('/text', function (req, res, next) {
+    var tripleId = req.query.id;
+    if (!tripleId) {
+        return res.json({
+            code: -1,
+            msg: 'Invalid request, "triple-id" not provided'
+        });
+    }
+
+    MetaStore.find({
+        tripleId: tripleId
+    }, function (err, triples) {
+        if (err) {
+            console.log(err);
+            return res.json({
+                code: -1,
+                msg: err
+            });
+        }
+        res.json({
+            code: 0,
+            msg: triples
+        });
+    });
+});
+
+
 router.post('/text', function (req, res, next) {
     var content = req.body.content;
     var userId = req.body.user;
