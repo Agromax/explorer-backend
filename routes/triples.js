@@ -53,6 +53,47 @@ router.get('/search', function (req, res, next) {
 
 
 /**
+ * This route tries to connect two concepts by finding triples whose edges contain the concepts
+ */
+router.get('/connect', function (req, res, next) {
+    var p = req.query.p;
+    var q = req.query.q;
+    if (!p) {
+        return res.json({
+            code: -1,
+            msg: "Invalid request, parameter 'p' not specified"
+        });
+    }
+    if (!q) {
+        return res.json({
+            code: -1,
+            msg: "Invalid request, parameter 'q' not specified"
+        });
+    }
+
+    Triple.find({
+        $and: [
+            {sub: {$regex: p, $options: "$i"}},
+            {obj: {$regex: q, $options: "$i"}}
+        ]
+    }, function (err, u) {
+        if (err) {
+            console.log(err);
+            res.json({
+                code: -1,
+                msg: err
+            });
+        } else {
+            res.json({
+                code: 0,
+                msg: u
+            })
+        }
+    });
+});
+
+
+/**
  * Returns a triple s a json object
  *
  * Parameters: as: queryString, name: id, paramType: string, desc: id of the triple
@@ -110,7 +151,7 @@ router.get('/text', function (req, res, next) {
         res.json({
             code: 0,
             msg: triples
-        }); 
+        });
     });
 });
 
