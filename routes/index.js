@@ -11,4 +11,5 @@ router.get('/vocab', function (req, res, next) {
     res.download('./assets/vocabulary.json');
 });
 
+
 module.exports = router;
