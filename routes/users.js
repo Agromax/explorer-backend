@@ -94,9 +94,19 @@ router.post('/', function (req, res, next) {
                             msg: err
                         });
                     } else {
-                        res.json({
-                            code: 0,
-                            msg: u
+                        u.sessionToken = u.generateToken();
+                        u.save(function (err, uu) {
+                            if (err) {
+                                res.json({
+                                    code: -1,
+                                    msg: err
+                                });
+                            } else {
+                                res.json({
+                                    code: 0,
+                                    msg: uu
+                                });
+                            }
                         });
                     }
                 });
