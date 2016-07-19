@@ -2,6 +2,7 @@ var express = require('express');
 var crypto = require('crypto');
 var path = require('path');
 var fs = require('fs');
+var multer = require('multer');
 
 var Promise = require('promise');
 var mongoose = require('mongoose');
@@ -15,6 +16,32 @@ var router = express.Router();
 var Triple = models.Triple;
 var User = models.User;
 var MetaStore = models.MetaStore;
+
+
+function getExtension(name) {
+    var dot = name.lastIndexOf('.');
+    if (dot >= 0) {
+        return name.slice(dot + 1);
+    }
+    return null;
+}
+
+var storage = multer.diskStorage({
+    destination: function (req, file, callback) {
+        callback(null, path.join(process.cwd(), 'public', 'uploads'));
+    },
+    filename: function (req, file, callback) {
+        var md5sum = crypto.createHash('md5');
+        md5sum.update(file.originalname);
+        console.log("Original name: " + file.originalname);
+        var ext = getExtension(file.originalname) || "";
+        callback(null, Math.random().toString(36).slice(2, 10) + '_' + md5sum.digest('hex') + '_' + Date.now() + "." + ext);
+    }
+});
+
+// Set the upload limit to 2 MiB and the field name to payload
+// TODO: add more filters on the file
+var upload = multer({storage: storage, fileSize: 10 * 1024 * 1024}).single('image');
 
 
 /**
@@ -205,6 +232,93 @@ router.post('/text', function (req, res, next) {
                 msg: "Invalid User"
             });
         }
+    });
+});
+
+
+router.get('/image', function (req, res, next) {
+    var tripleId = req.query.id;
+    if (!tripleId) {
+        return res.json({
+            code: -1,
+            msg: 'Invalid request, "triple-id" not provided'
+        });
+    }
+
+    MetaStore.find({
+        tripleId: tripleId
+    }, function (err, t) {
+        if (err) {
+            console.log(err);
+            return res.json({
+                code: -1,
+                msg: err
+            });
+        }
+        return res.json({
+            code: -1,
+            msg: t.filter(function (tt) {
+                return tt.contentType !== 'text';
+            })
+        });
+    });
+});
+
+
+router.post('/image', function (req, res, next) {
+    upload(req, res, function (err) {
+        if (err) {
+            console.log("Beginners luck");
+            console.log(err);
+            return res.json({code: -1, msg: err});
+        }
+
+        var userId = req.body.user;
+        var token = req.body.sessionToken;
+        var tripleId = req.body.triple;
+
+        console.log("User", userId);
+
+        User.findOne({
+            _id: userId
+        }).then(function (u) {
+            if (u) {
+                if (u.sessionToken === token) {
+                    var storagePath = req.file.path;
+                    console.log("sp::" + storagePath);
+
+                    var ms = new MetaStore({
+                        tripleId: mongoose.Types.ObjectId(tripleId),
+                        userId: mongoose.Types.ObjectId(userId),
+                        contentType: req.file.mimetype,
+                        content: storagePath,
+                        date: Date.now()
+                    });
+                    ms.save(function (err, ms1) {
+                        if (err) {
+                            return res.json({
+                                code: -1,
+                                msg: err
+                            });
+                        }
+                        return res.json({
+                            code: 0,
+                            msg: ms1
+                        });
+                    });
+                } else {
+                    return res.json({
+                        code: -1,
+                        msg: "Not authorized"
+                    });
+                }
+            } else {
+                return res.json({
+                    code: -1,
+                    msg: "Invalid User"
+                });
+            }
+        });
     });
 });
 
